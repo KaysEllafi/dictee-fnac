@@ -1,0 +1,132 @@
+/* ── Reset & Base ─────────────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f5f5f0;
+  color: #1a1a1a;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ── Navbar ───────────────────────────────────────────────── */
+.navbar {
+  background: #fff;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.fnac-logo {
+  background: #e2001a;
+  color: #fff;
+  font-size: 17px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: -0.5px;
+}
+.navbar-title { margin-left: 10px; font-size: 14px; color: #555; }
+.navbar-brand  { display: flex; align-items: center; }
+.navbar-links  { display: flex; align-items: center; gap: 20px; }
+.navbar-links a { text-decoration: none; font-size: 14px; color: #555; }
+.navbar-links a.active { color: #e2001a; font-weight: bold; }
+.navbar-links button {
+  background: none; border: 1px solid #ddd; border-radius: 6px;
+  padding: 5px 12px; font-size: 13px; cursor: pointer; color: #555;
+}
+.navbar-links button:hover { background: #f5f5f0; }
+
+/* ── Layout ───────────────────────────────────────────────── */
+.main-content { max-width: 720px; margin: 0 auto; padding: 32px 16px; }
+
+/* ── Cards ────────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 28px;
+}
+.card-title { font-size: 20px; font-weight: bold; margin-bottom: 6px; }
+.card-subtitle { font-size: 14px; color: #777; margin-bottom: 24px; }
+
+/* ── Formulaire ───────────────────────────────────────────── */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.form-group label { font-size: 13px; color: #555; font-weight: bold; }
+.form-group input {
+  height: 40px; border: 1px solid #ddd; border-radius: 8px;
+  padding: 0 12px; font-size: 14px; outline: none; transition: border-color 0.15s;
+}
+.form-group input:focus { border-color: #e2001a; box-shadow: 0 0 0 3px rgba(226,0,26,0.08); }
+
+/* ── Boutons ──────────────────────────────────────────────── */
+.btn { border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: bold; cursor: pointer; border: none; transition: opacity 0.15s; }
+.btn-primary  { background: #e2001a; color: #fff; width: 100%; padding: 13px; font-size: 15px; }
+.btn-primary:hover:not(:disabled) { opacity: 0.87; }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-secondary { background: #fff; border: 1px solid #ddd; color: #333; }
+
+/* ── Alertes ──────────────────────────────────────────────── */
+.alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+.alert-success { background: #edf7ed; color: #2e7d32; border: 1px solid #c3e6c3; }
+.alert-error   { background: #fdecea; color: #b71c1c; border: 1px solid #f5c6cb; }
+.alert-info    { background: #e3f2fd; color: #1565c0; border: 1px solid #bee3f8; }
+
+/* ── Compteur de places ───────────────────────────────────── */
+.counter-bar {
+  background: #f5f5f0; border-radius: 8px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+}
+.progress { flex: 1; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; transition: width 0.4s; background: #2e7d32; }
+.progress-fill.warn { background: #f57c00; }
+.progress-fill.full { background: #e2001a; }
+.counter-label { font-size: 12px; color: #777; white-space: nowrap; }
+
+/* ── Ticket ───────────────────────────────────────────────── */
+.ticket { border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; text-align: center; }
+.ticket-header { background: #e2001a; color: #fff; padding: 18px; }
+.ticket-header h2 { font-size: 18px; margin-bottom: 2px; }
+.ticket-header p  { font-size: 12px; opacity: 0.85; }
+.ticket-body  { padding: 24px; }
+.ticket-qr    { margin: 0 auto 12px; }
+.ticket-code  { font-family: monospace; font-size: 13px; color: #777; letter-spacing: 0.1em; }
+.ticket-footer { background: #f5f5f0; padding: 12px; font-size: 12px; color: #888; }
+
+/* ── Tables ───────────────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 10px 14px; border-bottom: 2px solid #f0f0f0; color: #777; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+td { padding: 11px 14px; border-bottom: 1px solid #f5f5f0; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafaf8; }
+
+/* ── Badges ───────────────────────────────────────────────── */
+.badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+.badge-ok      { background: #edf7ed; color: #2e7d32; }
+.badge-pending { background: #fff3e0; color: #e65100; }
+
+/* ── Stats ────────────────────────────────────────────────── */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card  { background: #f5f5f0; border-radius: 10px; padding: 16px; }
+.stat-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+.stat-val   { font-size: 26px; font-weight: bold; }
+
+/* ── Scanner ──────────────────────────────────────────────── */
+.scanner-box { border: 2px dashed #ddd; border-radius: 12px; padding: 32px; text-align: center; margin-bottom: 16px; }
+.scan-result { padding: 16px; border-radius: 8px; margin-top: 16px; }
+.scan-result.ok      { background: #edf7ed; color: #2e7d32; border: 1px solid #c3e6c3; }
+.scan-result.error   { background: #fdecea; color: #b71c1c; border: 1px solid #f5c6cb; }
+.scan-result.warning { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .form-row   { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .main-content { padding: 16px; }
+}
