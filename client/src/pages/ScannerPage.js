@@ -78,7 +78,7 @@ export default function ScannerPage() {
             value={code}
             onChange={e => setCode(e.target.value.toUpperCase())}
             onKeyDown={handleKeyDown}
-            placeholder="FNAC-2025-00001-AB12"
+            placeholder="FNAC-2026-00001-AB12"
             style={{
               flex: 1, height: 44, border: '2px solid #ddd', borderRadius: 8,
               padding: '0 14px', fontSize: 15, fontFamily: 'monospace', outline: 'none'

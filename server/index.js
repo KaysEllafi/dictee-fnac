@@ -11,6 +11,10 @@ const app  = express();
 const PORT = process.env.PORT || 4000;
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Vercel et les reverse proxies ajoutent `X-Forwarded-For`.
+// Sans `trust proxy`, express-rate-limit peut lever une ValidationError.
+app.set('trust proxy', 1);
+
 const missingVars = ['JWT_SECRET', 'DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']
   .filter((name) => !process.env[name]);
 

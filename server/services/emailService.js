@@ -53,7 +53,7 @@ function buildEmailHTML(inscription, qrDataUrl) {
         <tr>
           <td style="background:#e2001a; padding: 24px 32px;">
             <p style="margin:0; color:#ffffff; font-size:26px; font-weight:bold; letter-spacing:-0.5px;">fnac</p>
-            <p style="margin:4px 0 0; color:rgba(255,255,255,0.8); font-size:13px;">Dictée Fnac Tunisie 2025</p>
+            <p style="margin:4px 0 0; color:rgba(255,255,255,0.8); font-size:13px;">Dictée Fnac Tunisie 2026</p>
           </td>
         </tr>
 
@@ -95,7 +95,7 @@ function buildEmailHTML(inscription, qrDataUrl) {
                     <tr>
                       <td style="font-size:12px; color:#888; padding:4px 0;">Événement</td>
                       <td style="font-size:13px; color:#1a1a1a; text-align:right; padding:4px 0;">
-                        Dictée Fnac Tunisie 2025
+                        Dictée Fnac Tunisie 2026
                       </td>
                     </tr>
                     <tr>
@@ -121,7 +121,7 @@ function buildEmailHTML(inscription, qrDataUrl) {
         <tr>
           <td style="background:#f5f5f0; padding:16px 32px; text-align:center;">
             <p style="margin:0; font-size:11px; color:#aaa;">
-              © 2025 Fnac Tunisie — Culturetech SA. Cet e-mail vous a été envoyé car vous avez complété le formulaire d'inscription.
+              © 2026 Fnac Tunisie — Culturetech SA. Cet e-mail vous a été envoyé car vous avez complété le formulaire d'inscription.
             </p>
           </td>
         </tr>

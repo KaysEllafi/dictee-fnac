@@ -49,7 +49,7 @@ export default function AdminPage() {
     <div>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 'bold' }}>Dashboard — Inscrits</h1>
-        <p style={{ color: '#777', fontSize: 14 }}>Gestion des inscriptions à la Dictée Fnac 2025</p>
+        <p style={{ color: '#777', fontSize: 14 }}>Gestion des inscriptions à la Dictée Fnac 2026</p>
       </div>
 
       <div className="stats-grid">

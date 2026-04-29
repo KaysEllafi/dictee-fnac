@@ -68,7 +68,7 @@ export default function InscriptionPage() {
   return (
     <div>
       <div className="card">
-        <h1 className="card-title">Dictée Fnac Tunisie 2025</h1>
+        <h1 className="card-title">Dictée Fnac Tunisie 2026</h1>
         <p className="card-subtitle">Inscrivez-vous gratuitement. Places limitées à 400 participants.</p>
 
         {/* Compteur de places */}

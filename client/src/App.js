@@ -14,7 +14,7 @@ function Navbar() {
     <nav className="navbar">
       <div className="navbar-brand">
         <span className="fnac-logo">fnac</span>
-        <span className="navbar-title">Dictée 2025</span>
+        <span className="navbar-title">Dictée 2026</span>
       </div>
       {isAdmin && (
         <div className="navbar-links">
