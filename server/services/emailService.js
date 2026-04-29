@@ -22,16 +22,24 @@ async function envoyerEmail(inscriptions) {
   const list = Array.isArray(inscriptions) ? inscriptions : [inscriptions];
   const first = list[0];
 
-  // Générer un QR code pour chaque inscription.
-  const qrDataUrls = await Promise.all(list.map(async (ins) => {
-    return QRCode.toDataURL(ins.code, {
+  // Générer un QR code (buffer) pour chaque inscription.
+  const qrBuffers = await Promise.all(list.map(async (ins) => {
+    return QRCode.toBuffer(ins.code, {
       width: 220,
       margin: 1,
       color: { dark: '#1a1a1a', light: '#ffffff' }
     });
   }));
 
-  const html = buildEmailHTML(list, qrDataUrls);
+  const qrCids = list.map((_, idx) => `qr-${idx}@dictee-fnac`);
+  const html = buildEmailHTML(list, qrCids);
+  const attachments = qrBuffers.map((buffer, idx) => ({
+    filename: `qr-${list[idx].code}.png`,
+    content: buffer,
+    cid: qrCids[idx],
+    contentType: 'image/png',
+    disposition: 'inline'
+  }));
 
   const mailOptions = {
     from:    process.env.MAIL_FROM || '"Fnac Tunisie" <noreply@fnac.com.tn>',
@@ -40,6 +48,7 @@ async function envoyerEmail(inscriptions) {
       ? `✅ Votre inscription à la Dictée Fnac — ${first.prenom} ${first.nom}`
       : `✅ Vos ${list.length} inscriptions à la Dictée Fnac`,
     html,
+    attachments,
   };
 
   const maxAttempts = 3;
@@ -62,7 +71,7 @@ async function envoyerEmail(inscriptions) {
   throw lastError || new Error('Échec envoi e-mail');
 }
 
-function buildEmailHTML(inscriptions, qrDataUrls) {
+function buildEmailHTML(inscriptions, qrCids) {
   const first = inscriptions[0];
   const plural = inscriptions.length > 1;
   const billetLine = plural ? 'Ces billets sont <strong>personnels</strong> et non transférables'
@@ -76,7 +85,7 @@ function buildEmailHTML(inscriptions, qrDataUrls) {
           <p style="margin:0 0 4px; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.08em;">
             QR code d'entrée
           </p>
-          <img src="${qrDataUrls[idx]}" width="180" height="180" alt="QR code ${ins.code}"
+          <img src="cid:${qrCids[idx]}" width="180" height="180" alt="QR code ${ins.code}"
             style="display:block; margin:12px auto; max-width: 100%; height: auto;">
           <p style="margin:8px 0 0; font-size:12px; color:#888; font-family:monospace; letter-spacing:0.1em;">
             ${ins.code}
