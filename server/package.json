@@ -8,16 +8,17 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "bcryptjs": "^2.4.3",
+    "bwip-js": "^4.10.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "pg": "^8.11.3",
-    "nodemailer": "^6.9.7",
-    "qrcode": "^1.5.3",
-    "uuid": "^9.0.0",
-    "bcryptjs": "^2.4.3",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
     "jsonwebtoken": "^9.0.2",
-    "express-rate-limit": "^7.1.5"
+    "nodemailer": "^6.9.7",
+    "pg": "^8.11.3",
+    "qrcode": "^1.5.3",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

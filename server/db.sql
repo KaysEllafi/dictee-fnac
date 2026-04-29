@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS inscriptions (
   code        VARCHAR(30)  UNIQUE NOT NULL,
   prenom      VARCHAR(100) NOT NULL,
   nom         VARCHAR(100) NOT NULL,
-  email       VARCHAR(255) UNIQUE NOT NULL,
+  email       VARCHAR(255) NOT NULL,
   telephone   VARCHAR(30),
   present     BOOLEAN      DEFAULT FALSE,
   scanned_at  TIMESTAMP,

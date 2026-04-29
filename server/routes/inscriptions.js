@@ -8,55 +8,82 @@ const MAX = parseInt(process.env.MAX_INSCRIPTIONS || '400');
 
 // POST /api/inscriptions — créer une nouvelle inscription
 router.post('/', async (req, res) => {
-  const { prenom, nom, email, telephone } = req.body;
+  const body = req.body || {};
 
-  if (!prenom || !nom || !email) {
-    return res.status(400).json({ error: 'Champs obligatoires manquants (prenom, nom, email).' });
+  // Compat ancien format (1 inscription) :
+  // { prenom, nom, email, telephone }
+  // Nouveau format :
+  // { email, participants: [{ prenom, nom, telephone }] }
+  const email = body.email;
+  let participants = body.participants;
+  if (!Array.isArray(participants)) {
+    participants = [
+      {
+        prenom: body.prenom,
+        nom: body.nom,
+        telephone: body.telephone
+      }
+    ];
+  }
+
+  if (!email) {
+    return res.status(400).json({ error: 'Champs obligatoires manquants (email).' });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: 'Adresse e-mail invalide.' });
   }
 
+  participants = participants
+    .filter(Boolean)
+    .slice(0, 3);
+
+  if (!participants.length) {
+    return res.status(400).json({ error: 'Aucun participant fourni.' });
+  }
+
+  const invalidParticipant = participants.some(p => !p?.prenom || !p?.nom);
+  if (invalidParticipant) {
+    return res.status(400).json({ error: 'Champs obligatoires manquants (prenom, nom pour chaque inscrit).' });
+  }
+
   try {
     // Vérifier le compteur
     const { rows: countRows } = await pool.query('SELECT COUNT(*) AS n FROM inscriptions');
-    if (parseInt(countRows[0].n) >= MAX) {
-      return res.status(409).json({ error: 'Désolé, la dictée affiche complet (400/400 places).' });
+    const current = parseInt(countRows[0].n);
+    const remainingAfter = current + participants.length;
+    if (remainingAfter > MAX) {
+      return res.status(409).json({ error: 'Désolé, la dictée affiche complet (places insuffisantes).' });
     }
 
-    // Vérifier doublon email
-    const { rows: existing } = await pool.query(
-      'SELECT id FROM inscriptions WHERE email = $1', [email.toLowerCase()]
-    );
-    if (existing.length > 0) {
-      return res.status(409).json({ error: 'Cette adresse e-mail est déjà inscrite.' });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Insérer tous les participants
+    const inscriptions = [];
+    for (let i = 0; i < participants.length; i++) {
+      const p = participants[i];
+      const code = genererCode(current + i + 1);
+      const { rows } = await pool.query(
+        `INSERT INTO inscriptions (code, prenom, nom, email, telephone)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [code, p.prenom.trim(), p.nom.trim(), normalizedEmail, p.telephone?.trim() || null]
+      );
+      inscriptions.push(rows[0]);
     }
-
-    // Générer le code unique
-    const code = genererCode(parseInt(countRows[0].n) + 1);
-
-    // Insérer en base
-    const { rows } = await pool.query(
-      `INSERT INTO inscriptions (code, prenom, nom, email, telephone)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [code, prenom.trim(), nom.trim(), email.toLowerCase().trim(), telephone?.trim() || null]
-    );
-    const inscription = rows[0];
 
     // Envoyer l'e-mail de confirmation (async, on ne bloque pas la réponse)
-    envoyerEmail(inscription).catch(err =>
+    envoyerEmail(inscriptions).catch(err =>
       console.error('Erreur envoi e-mail:', err.message)
     );
 
     return res.status(201).json({
       message: 'Inscription confirmée !',
-      inscription: {
-        id:    inscription.id,
-        code:  inscription.code,
-        prenom: inscription.prenom,
-        nom:   inscription.nom,
-        email: inscription.email,
-      }
+      inscriptions: inscriptions.map((ins) => ({
+        id: ins.id,
+        code: ins.code,
+        prenom: ins.prenom,
+        nom: ins.nom,
+        email: ins.email,
+      }))
     });
 
   } catch (err) {
