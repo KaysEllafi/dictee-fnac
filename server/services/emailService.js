@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const QRCode     = require('qrcode');
+const bwipjs     = require('bwip-js');
 
 const transporter = nodemailer.createTransport({
   host:   process.env.SMTP_HOST,
@@ -12,18 +12,25 @@ const transporter = nodemailer.createTransport({
 });
 
 /**
- * Génère le QR code en base64 et envoie l'e-mail de confirmation
+ * Génère le code-barres en base64 et envoie l'e-mail de confirmation
  * @param {object} inscription — objet depuis la BDD
  */
 async function envoyerEmail(inscription) {
-  // Générer le QR code (le code-barres scannable)
-  const qrDataUrl = await QRCode.toDataURL(inscription.code, {
-    width: 250,
-    margin: 2,
-    color: { dark: '#1a1a1a', light: '#ffffff' }
+  // Générer un code-barres (Code 128) directement en base64 pour l'intégrer dans le HTML.
+  const barcodeBase64 = await bwipjs.toBuffer({
+    bcid: 'code128',
+    text: inscription.code,
+    scale: 3,
+    height: 10,
+    includetext: false,
+    backgroundcolor: 'FFFFFF',
+    paddingwidth: 0,
+    padding: 0,
   });
 
-  const html = buildEmailHTML(inscription, qrDataUrl);
+  const barcodeDataUrl = `data:image/png;base64,${barcodeBase64.toString('base64')}`;
+
+  const html = buildEmailHTML(inscription, barcodeDataUrl);
 
   await transporter.sendMail({
     from:    process.env.MAIL_FROM || '"Fnac Tunisie" <noreply@fnac.com.tn>',
@@ -35,7 +42,7 @@ async function envoyerEmail(inscription) {
   console.log(`📧 E-mail envoyé à ${inscription.email} (code: ${inscription.code})`);
 }
 
-function buildEmailHTML(inscription, qrDataUrl) {
+function buildEmailHTML(inscription, barcodeDataUrl) {
   return `
 <!DOCTYPE html>
 <html lang="fr">
@@ -49,11 +56,11 @@ function buildEmailHTML(inscription, qrDataUrl) {
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden;">
         
-        <!-- Header Fnac -->
+        <!-- Header Fnac (jaune + style logo) -->
         <tr>
-          <td style="background:#e2001a; padding: 24px 32px;">
-            <p style="margin:0; color:#ffffff; font-size:26px; font-weight:bold; letter-spacing:-0.5px;">fnac</p>
-            <p style="margin:4px 0 0; color:rgba(255,255,255,0.8); font-size:13px;">Dictée Fnac Tunisie 2026</p>
+          <td style="background:#ffcc00; padding: 24px 32px;">
+            <p style="margin:0; color:#111111; font-size:26px; font-weight:bold; letter-spacing:-0.5px;">fnac</p>
+            <p style="margin:4px 0 0; color:rgba(0,0,0,0.65); font-size:13px;">Dictée Fnac Tunisie 2026</p>
           </td>
         </tr>
 
@@ -65,7 +72,7 @@ function buildEmailHTML(inscription, qrDataUrl) {
             </p>
             <p style="margin:0 0 24px; font-size:14px; color:#555; line-height:1.6;">
               Votre inscription à la <strong>Dictée Fnac Tunisie</strong> est confirmée.
-              Présentez ce QR code à l'entrée le jour de l'événement.
+              Présentez ce code-barres à l'entrée le jour de l'événement.
             </p>
 
             <!-- Billet -->
@@ -74,10 +81,10 @@ function buildEmailHTML(inscription, qrDataUrl) {
               <tr>
                 <td style="background:#fafaf8; padding: 20px; text-align:center; border-bottom:1px dashed #e0e0e0;">
                   <p style="margin:0 0 4px; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.08em;">
-                    QR Code d'entrée
+                    Code-barres d'entrée
                   </p>
-                  <img src="${qrDataUrl}" width="180" height="180" alt="QR Code ${inscription.code}"
-                    style="display:block; margin:12px auto;">
+                  <img src="${barcodeDataUrl}" width="320" height="90" alt="Code-barres ${inscription.code}"
+                    style="display:block; margin:12px auto; max-width: 100%; height: auto;">
                   <p style="margin:8px 0 0; font-size:12px; color:#888; font-family:monospace; letter-spacing:0.1em;">
                     ${inscription.code}
                   </p>

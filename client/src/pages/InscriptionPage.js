@@ -69,18 +69,18 @@ export default function InscriptionPage() {
     <div>
       <div className="card">
         <h1 className="card-title">Dictée Fnac Tunisie 2026</h1>
-        <p className="card-subtitle">Inscrivez-vous gratuitement. Places limitées à 400 participants.</p>
+        <p className="card-subtitle">Inscrivez-vous gratuitement. Places limitées.</p>
 
         {/* Compteur de places */}
         <div className="counter-bar">
-          <span className="counter-label">{count.count} / {count.max} inscrits</span>
+          <span className="counter-label">{count.count} inscrits</span>
           <div className="progress">
             <div
               className={`progress-fill${pct >= 100 ? ' full' : pct >= 80 ? ' warn' : ''}`}
               style={{ width: pct + '%' }}
             />
           </div>
-          <span className="counter-label">{full ? '🔴 Complet' : `${count.max - count.count} restantes`}</span>
+          <span className="counter-label">{full ? '🔴 Complet' : 'Places restantes'}</span>
         </div>
 
         {full && (
