@@ -22,9 +22,14 @@ router.post('/', auth, async (req, res) => {
   if (!code) return res.status(400).json({ error: 'Code manquant.' });
 
   try {
+    const rawCode = code.trim().toUpperCase();
+    const normalizedCode = rawCode.replace(/[^A-Z0-9]/g, '');
+
     const { rows } = await pool.query(
-      'SELECT * FROM inscriptions WHERE code = $1',
-      [code.trim().toUpperCase()]
+      `SELECT * FROM inscriptions
+       WHERE UPPER(code) = $1
+          OR REGEXP_REPLACE(UPPER(code), '[^A-Z0-9]', '', 'g') = $2`,
+      [rawCode, normalizedCode]
     );
 
     if (!rows.length) {
