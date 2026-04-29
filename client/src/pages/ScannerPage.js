@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { BrowserMultiFormatReader } from '@zxing/library';
 
 export default function ScannerPage() {
   const [code, setCode]         = useState('');
@@ -8,12 +9,35 @@ export default function ScannerPage() {
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned]   = useState(0);
   const inputRef = useRef(null);
+  const videoRef = useRef(null);
+  const readerRef = useRef(null);
+  const lastCameraScanRef = useRef({ value: '', ts: 0 });
+  const [cameraDevices, setCameraDevices] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState('');
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
   useEffect(() => {
     if (!token) navigate('/login');
     inputRef.current?.focus();
+
+    const reader = new BrowserMultiFormatReader();
+    readerRef.current = reader;
+
+    reader.listVideoInputDevices()
+      .then((devices) => {
+        setCameraDevices(devices);
+        if (devices.length) setSelectedCameraId(devices[0].deviceId);
+      })
+      .catch(() => {
+        setCameraError('Caméra non disponible sur cet appareil.');
+      });
+
+    return () => {
+      reader.reset();
+    };
   }, [token, navigate]);
 
   const handleScan = async (codeValue) => {
@@ -52,21 +76,110 @@ export default function ScannerPage() {
     if (e.key === 'Enter') handleScan();
   };
 
+  const startCamera = async () => {
+    if (!readerRef.current || !videoRef.current) return;
+    if (!selectedCameraId) {
+      setCameraError('Aucune caméra détectée.');
+      return;
+    }
+
+    setCameraError('');
+    setCameraActive(true);
+
+    try {
+      await readerRef.current.decodeFromVideoDevice(
+        selectedCameraId,
+        videoRef.current,
+        (decoded) => {
+          if (!decoded) return;
+          const value = decoded.getText().trim().toUpperCase();
+          if (!value) return;
+
+          // Evite de traiter plusieurs fois le même scan en rafale.
+          const now = Date.now();
+          const tooSoon = lastCameraScanRef.current.value === value && (now - lastCameraScanRef.current.ts) < 1500;
+          if (tooSoon) return;
+
+          lastCameraScanRef.current = { value, ts: now };
+          setCode(value);
+          handleScan(value);
+        }
+      );
+    } catch {
+      setCameraError('Impossible de démarrer la caméra. Vérifiez l’autorisation navigateur.');
+      setCameraActive(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (!readerRef.current) return;
+    readerRef.current.reset();
+    setCameraActive(false);
+  };
+
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 'bold' }}>Scanner — Jour J</h1>
         <p style={{ color: '#777', fontSize: 14 }}>
-          Scannez les QR codes ou entrez le code manuellement. 
+          Scannez les codes-barres ou entrez le code manuellement.
           <strong style={{ color: '#2e7d32' }}> {scanned} scanné(s)</strong> cette session.
         </p>
       </div>
 
       <div className="card">
+        <div style={{ marginBottom: 16, display: 'grid', gap: 10 }}>
+          {cameraDevices.length > 1 && (
+            <select
+              value={selectedCameraId}
+              onChange={(e) => setSelectedCameraId(e.target.value)}
+              disabled={cameraActive}
+              style={{
+                height: 40,
+                border: '1px solid #ddd',
+                borderRadius: 8,
+                padding: '0 10px',
+                fontSize: 14
+              }}
+            >
+              {cameraDevices.map((d, idx) => (
+                <option key={d.deviceId} value={d.deviceId}>
+                  Caméra {idx + 1}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            {!cameraActive ? (
+              <button className="btn btn-secondary" onClick={startCamera}>Ouvrir la caméra</button>
+            ) : (
+              <button className="btn btn-secondary" onClick={stopCamera}>Arrêter la caméra</button>
+            )}
+          </div>
+
+          {cameraError && (
+            <div className="alert alert-error" style={{ marginBottom: 0 }}>
+              {cameraError}
+            </div>
+          )}
+
+          <video
+            ref={videoRef}
+            style={{
+              width: '100%',
+              borderRadius: 10,
+              border: '1px solid #eee',
+              display: cameraActive ? 'block' : 'none'
+            }}
+            muted
+          />
+        </div>
+
         <div className="scanner-box">
           <div style={{ fontSize: 48, marginBottom: 12 }}>▦</div>
           <p style={{ color: '#777', fontSize: 14 }}>
-            Pointez le scanner vers le QR code du participant.<br/>
+            Pointez le scanner vers le code-barres du participant.<br/>
             Le champ ci-dessous capture automatiquement le résultat.
           </p>
         </div>
