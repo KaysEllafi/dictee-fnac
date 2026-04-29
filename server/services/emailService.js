@@ -90,6 +90,9 @@ function buildEmailHTML(inscriptions, qrCids) {
           <p style="margin:8px 0 0; font-size:12px; color:#888; font-family:monospace; letter-spacing:0.1em;">
             ${ins.code}
           </p>
+          <p style="margin:10px 0 0; font-size:11px; color:#999;">
+            Si le QR ne s'affiche pas, présentez ce code texte à l'entrée.
+          </p>
         </td>
       </tr>
       <tr>
