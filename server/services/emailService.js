@@ -108,7 +108,7 @@ function buildEmailHTML(inscription, barcodeDataUrl) {
                     <tr>
                       <td style="font-size:12px; color:#888; padding:4px 0;">Lieu</td>
                       <td style="font-size:13px; color:#1a1a1a; text-align:right; padding:4px 0;">
-                        Fnac — Centre commercial, Tunis
+                        Fnac La Marsa
                       </td>
                     </tr>
                   </table>
