@@ -20,9 +20,12 @@ export default function ScannerPage() {
   const [selectedCameraId, setSelectedCameraId] = useState('');
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
-  const [imageDecoding, setImageDecoding] = useState(false);
+  const [ocrStatus, setOcrStatus] = useState('');
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
+  const ocrBusyRef = useRef(false);
+  const ocrIntervalRef = useRef(null);
+  const tesseractRef = useRef(null);
 
   const refreshCameraDevices = async (reader) => {
     const r = reader || readerRef.current;
@@ -145,6 +148,12 @@ export default function ScannerPage() {
           };
 
       await readerRef.current.decodeFromConstraints(constraints, videoRef.current, onDecode);
+
+      // Fallback OCR en direct : lit le texte FNAC-2026-... depuis la vidéo.
+      if (ocrIntervalRef.current) clearInterval(ocrIntervalRef.current);
+      ocrIntervalRef.current = setInterval(() => {
+        runOcrFromVideo().catch(() => {});
+      }, 2500);
     } catch (err) {
       if (err?.name === 'NotAllowedError') {
         setCameraError('Accès caméra refusé. Autorisez la caméra pour Safari puis rechargez la page.');
@@ -161,42 +170,68 @@ export default function ScannerPage() {
     if (!readerRef.current) return;
     readerRef.current.reset();
     setCameraActive(false);
+    setOcrStatus('');
+    if (ocrIntervalRef.current) {
+      clearInterval(ocrIntervalRef.current);
+      ocrIntervalRef.current = null;
+    }
   };
 
-  const handleImageFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !readerRef.current) return;
+  const extractFnacCode = (text) => {
+    if (!text) return null;
+    const up = text.toUpperCase().replace(/\s+/g, ' ');
+    const strict = up.match(/FNAC[\s-]*2026[\s-]*([0-9]{5})[\s-]*([A-Z0-9]{4})/);
+    if (strict) return `FNAC-2026-${strict[1]}-${strict[2]}`;
 
-    setCameraError('');
-    setImageDecoding(true);
+    const loose = up.match(/FNAC[\s-]*2026[\s-]*[A-Z0-9-]{6,}/);
+    if (!loose) return null;
 
+    const normalized = loose[0].replace(/[^A-Z0-9]/g, '');
+    // Format attendu : FNAC2026 + 5 chiffres + 4 chars
+    if (!normalized.startsWith('FNAC2026') || normalized.length < 17) return null;
+    const seq = normalized.slice(8, 13);
+    const tail = normalized.slice(13, 17);
+    if (!/^\d{5}$/.test(seq) || !/^[A-Z0-9]{4}$/.test(tail)) return null;
+    return `FNAC-2026-${seq}-${tail}`;
+  };
+
+  const runOcrFromVideo = async () => {
+    if (!cameraActive || scanning || ocrBusyRef.current || !videoRef.current) return;
+    if (videoRef.current.readyState < 2) return;
+
+    ocrBusyRef.current = true;
     try {
-      const objectUrl = URL.createObjectURL(file);
-      const img = new Image();
-      img.src = objectUrl;
-
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-
-      const decoded = await readerRef.current.decodeFromImageElement(img);
-      const value = decoded?.getText()?.trim()?.toUpperCase();
-      URL.revokeObjectURL(objectUrl);
-
-      if (!value) {
-        setCameraError('Aucun QR/code-barres détecté sur la photo.');
-        return;
+      if (!tesseractRef.current) {
+        const mod = await import('tesseract.js');
+        tesseractRef.current = mod.default || mod;
       }
 
-      setCode(value);
-      handleScan(value);
-    } catch {
-      setCameraError('Impossible de lire cette image. Essayez une photo plus nette du QR/code.');
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      setOcrStatus('Lecture OCR...');
+      const result = await tesseractRef.current.recognize(canvas, 'eng', {
+        tessedit_char_whitelist: 'FNAC0123456789-',
+      });
+
+      const maybeCode = extractFnacCode(result?.data?.text || '');
+      if (!maybeCode) return;
+
+      const now = Date.now();
+      const tooSoon = lastCameraScanRef.current.value === maybeCode && (now - lastCameraScanRef.current.ts) < 2000;
+      if (tooSoon) return;
+
+      lastCameraScanRef.current = { value: maybeCode, ts: now };
+      setCode(maybeCode);
+      handleScan(maybeCode);
     } finally {
-      setImageDecoding(false);
-      // Permet de recharger le même fichier si besoin
-      e.target.value = '';
+      setOcrStatus('');
+      ocrBusyRef.current = false;
     }
   };
 
@@ -242,17 +277,12 @@ export default function ScannerPage() {
             ) : (
               <button className="btn btn-secondary" onClick={stopCamera}>Arrêter la caméra</button>
             )}
-            <label className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center' }}>
-              {imageDecoding ? 'Lecture photo...' : 'Scanner depuis photo'}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageFile}
-                style={{ display: 'none' }}
-                disabled={imageDecoding}
-              />
-            </label>
           </div>
+          {cameraActive && (
+            <p style={{ fontSize: 12, color: '#888', margin: 0 }}>
+              Détection auto QR/code-barres + OCR texte {ocrStatus ? `(${ocrStatus})` : ''}
+            </p>
+          )}
 
           {cameraError && (
             <div className="alert alert-error" style={{ marginBottom: 0 }}>
