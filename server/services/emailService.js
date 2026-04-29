@@ -2,6 +2,9 @@ const nodemailer = require('nodemailer');
 const QRCode     = require('qrcode');
 
 const transporter = nodemailer.createTransport({
+  pool: true,
+  maxConnections: 3,
+  maxMessages: 100,
   host:   process.env.SMTP_HOST,
   port:   parseInt(process.env.SMTP_PORT || '587'),
   secure: false,
@@ -30,16 +33,33 @@ async function envoyerEmail(inscriptions) {
 
   const html = buildEmailHTML(list, qrDataUrls);
 
-  await transporter.sendMail({
+  const mailOptions = {
     from:    process.env.MAIL_FROM || '"Fnac Tunisie" <noreply@fnac.com.tn>',
     to:      first.email,
     subject: list.length === 1
       ? `✅ Votre inscription à la Dictée Fnac — ${first.prenom} ${first.nom}`
       : `✅ Vos ${list.length} inscriptions à la Dictée Fnac`,
     html,
-  });
+  };
 
-  console.log(`📧 E-mail envoyé à ${first.email} (${list.length} code(s))`);
+  const maxAttempts = 3;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`📧 E-mail envoyé à ${first.email} (${list.length} code(s)) [tentative ${attempt}]`);
+      return;
+    } catch (err) {
+      lastError = err;
+      console.error(`Erreur SMTP tentative ${attempt}/${maxAttempts}:`, err.message);
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+      }
+    }
+  }
+
+  throw lastError || new Error('Échec envoi e-mail');
 }
 
 function buildEmailHTML(inscriptions, qrDataUrls) {
