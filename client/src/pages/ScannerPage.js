@@ -126,8 +126,14 @@ export default function ScannerPage() {
           onDecode
         );
       }
-    } catch {
-      setCameraError('Impossible de démarrer la caméra. Vérifiez l’autorisation navigateur.');
+    } catch (err) {
+      if (err?.name === 'NotAllowedError') {
+        setCameraError('Accès caméra refusé. Autorisez la caméra pour Safari puis rechargez la page.');
+      } else if (err?.name === 'NotFoundError' || err?.name === 'OverconstrainedError') {
+        setCameraError('Aucune caméra compatible détectée sur cet appareil.');
+      } else {
+        setCameraError('Impossible de démarrer la caméra. Vérifiez l’autorisation navigateur.');
+      }
       setCameraActive(false);
     }
   };
@@ -193,6 +199,8 @@ export default function ScannerPage() {
               border: '1px solid #eee',
               display: cameraActive ? 'block' : 'none'
             }}
+            autoPlay
+            playsInline
             muted
           />
         </div>
