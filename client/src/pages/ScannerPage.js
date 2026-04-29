@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { BrowserMultiFormatReader } from '@zxing/library';
+import {
+  BarcodeFormat,
+  BrowserMultiFormatReader,
+  DecodeHintType
+} from '@zxing/library';
 
 export default function ScannerPage() {
   const [code, setCode]         = useState('');
@@ -16,6 +20,7 @@ export default function ScannerPage() {
   const [selectedCameraId, setSelectedCameraId] = useState('');
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
+  const [imageDecoding, setImageDecoding] = useState(false);
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
@@ -36,7 +41,12 @@ export default function ScannerPage() {
     if (!token) navigate('/login');
     inputRef.current?.focus();
 
-    const reader = new BrowserMultiFormatReader();
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE]);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    hints.set(DecodeHintType.ALSO_INVERTED, true);
+
+    const reader = new BrowserMultiFormatReader(hints, 300);
     readerRef.current = reader;
 
     refreshCameraDevices(reader).then((devices) => {
@@ -117,15 +127,24 @@ export default function ScannerPage() {
         handleScan(value);
       };
 
-      if (selectedCameraId) {
-        await readerRef.current.decodeFromVideoDevice(selectedCameraId, videoRef.current, onDecode);
-      } else {
-        await readerRef.current.decodeFromConstraints(
-          { video: { facingMode: 'environment' } },
-          videoRef.current,
-          onDecode
-        );
-      }
+      const constraints = selectedCameraId
+        ? {
+            video: {
+              deviceId: { exact: selectedCameraId },
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            }
+          }
+        : {
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            }
+          };
+
+      await readerRef.current.decodeFromConstraints(constraints, videoRef.current, onDecode);
     } catch (err) {
       if (err?.name === 'NotAllowedError') {
         setCameraError('Accès caméra refusé. Autorisez la caméra pour Safari puis rechargez la page.');
@@ -144,6 +163,43 @@ export default function ScannerPage() {
     setCameraActive(false);
   };
 
+  const handleImageFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !readerRef.current) return;
+
+    setCameraError('');
+    setImageDecoding(true);
+
+    try {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.src = objectUrl;
+
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const decoded = await readerRef.current.decodeFromImageElement(img);
+      const value = decoded?.getText()?.trim()?.toUpperCase();
+      URL.revokeObjectURL(objectUrl);
+
+      if (!value) {
+        setCameraError('Aucun QR/code-barres détecté sur la photo.');
+        return;
+      }
+
+      setCode(value);
+      handleScan(value);
+    } catch {
+      setCameraError('Impossible de lire cette image. Essayez une photo plus nette du QR/code.');
+    } finally {
+      setImageDecoding(false);
+      // Permet de recharger le même fichier si besoin
+      e.target.value = '';
+    }
+  };
+
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
@@ -151,6 +207,9 @@ export default function ScannerPage() {
         <p style={{ color: '#777', fontSize: 14 }}>
           Scannez les codes-barres ou entrez le code manuellement.
           <strong style={{ color: '#2e7d32' }}> {scanned} scanné(s)</strong> cette session.
+        </p>
+        <p style={{ color: '#999', fontSize: 12, marginTop: 4 }}>
+          Astuce iPhone : augmentez la luminosité et approchez le code-barres horizontalement.
         </p>
       </div>
 
@@ -183,6 +242,16 @@ export default function ScannerPage() {
             ) : (
               <button className="btn btn-secondary" onClick={stopCamera}>Arrêter la caméra</button>
             )}
+            <label className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              {imageDecoding ? 'Lecture photo...' : 'Scanner depuis photo'}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageFile}
+                style={{ display: 'none' }}
+                disabled={imageDecoding}
+              />
+            </label>
           </div>
 
           {cameraError && (
