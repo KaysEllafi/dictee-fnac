@@ -19,6 +19,19 @@ export default function ScannerPage() {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
+  const refreshCameraDevices = async (reader) => {
+    const r = reader || readerRef.current;
+    if (!r) return [];
+    try {
+      const devices = await r.listVideoInputDevices();
+      setCameraDevices(devices);
+      if (devices.length && !selectedCameraId) setSelectedCameraId(devices[0].deviceId);
+      return devices;
+    } catch {
+      return [];
+    }
+  };
+
   useEffect(() => {
     if (!token) navigate('/login');
     inputRef.current?.focus();
@@ -26,14 +39,11 @@ export default function ScannerPage() {
     const reader = new BrowserMultiFormatReader();
     readerRef.current = reader;
 
-    reader.listVideoInputDevices()
-      .then((devices) => {
-        setCameraDevices(devices);
-        if (devices.length) setSelectedCameraId(devices[0].deviceId);
-      })
-      .catch(() => {
-        setCameraError('Caméra non disponible sur cet appareil.');
-      });
+    refreshCameraDevices(reader).then((devices) => {
+      if (!devices.length) {
+        setCameraError('Aucune caméra détectée. Cliquez sur "Ouvrir la caméra" pour demander l’autorisation.');
+      }
+    });
 
     return () => {
       reader.reset();
@@ -78,33 +88,44 @@ export default function ScannerPage() {
 
   const startCamera = async () => {
     if (!readerRef.current || !videoRef.current) return;
-    if (!selectedCameraId) {
-      setCameraError('Aucune caméra détectée.');
-      return;
-    }
 
     setCameraError('');
     setCameraActive(true);
 
     try {
-      await readerRef.current.decodeFromVideoDevice(
-        selectedCameraId,
-        videoRef.current,
-        (decoded) => {
-          if (!decoded) return;
-          const value = decoded.getText().trim().toUpperCase();
-          if (!value) return;
+      let devices = cameraDevices;
 
-          // Evite de traiter plusieurs fois le même scan en rafale.
-          const now = Date.now();
-          const tooSoon = lastCameraScanRef.current.value === value && (now - lastCameraScanRef.current.ts) < 1500;
-          if (tooSoon) return;
+      // Certains navigateurs (mobile/Safari) ne listent les caméras qu'après autorisation.
+      if (!devices.length && navigator.mediaDevices?.getUserMedia) {
+        const preStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        preStream.getTracks().forEach((t) => t.stop());
+        devices = await refreshCameraDevices();
+      }
 
-          lastCameraScanRef.current = { value, ts: now };
-          setCode(value);
-          handleScan(value);
-        }
-      );
+      const onDecode = (decoded) => {
+        if (!decoded) return;
+        const value = decoded.getText().trim().toUpperCase();
+        if (!value) return;
+
+        // Evite de traiter plusieurs fois le même scan en rafale.
+        const now = Date.now();
+        const tooSoon = lastCameraScanRef.current.value === value && (now - lastCameraScanRef.current.ts) < 1500;
+        if (tooSoon) return;
+
+        lastCameraScanRef.current = { value, ts: now };
+        setCode(value);
+        handleScan(value);
+      };
+
+      if (selectedCameraId) {
+        await readerRef.current.decodeFromVideoDevice(selectedCameraId, videoRef.current, onDecode);
+      } else {
+        await readerRef.current.decodeFromConstraints(
+          { video: { facingMode: 'environment' } },
+          videoRef.current,
+          onDecode
+        );
+      }
     } catch {
       setCameraError('Impossible de démarrer la caméra. Vérifiez l’autorisation navigateur.');
       setCameraActive(false);
