@@ -1,4 +1,4 @@
-# 📖 Dictée Fnac Tunisie 2025 — Application d'inscription
+# 📖 Dictée Fnac Tunisie 2026 — Application d'inscription
 
 Application complète : formulaire d'inscription public → e-mail automatique avec QR code → dashboard admin → scanner jour J.
 
